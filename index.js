@@ -7,10 +7,10 @@ var mqttParams = {
   topic: process.env.WATCHMEN_MQTT_TOPIC
 };
 
-function mqttPublish() {
+function mqttPublish(payload) {
   var client  = mqtt.connect(mqttParams.broker ? mqttParams.broker : 'mqtt://test.mosquitto.org');
   client.on('connect', function () {
-    client.publish('rgs', 'Hello mqtt');
+    client.publish(mqttParams.topic ? mqttParams.topic : 'watchmen', payload);
   });
 };
 
@@ -27,8 +27,7 @@ var eventHandlers = {
   onNewOutage: function (service, outage) {
     var errorMsg = service.name + ' down!'.red + '. Error: ' + JSON.stringify(outage.error).red;
     console.log(errorMsg);
-    mqttPublish(mqttParams.topic ? mqttParams.topic : 'watchmen',
-      { event: 'newOutage', service: service.name, msg: JSON.stringify(outage.error) });
+    mqttPublish({ event: 'newOutage', service: service.name, msg: JSON.stringify(outage.error) });
   },
 
   /**
@@ -42,8 +41,7 @@ var eventHandlers = {
   onCurrentOutage: function (service, outage) {
     var errorMsg = service.name + ' is still down!'.red + '. Error: ' + JSON.stringify(outage.error).red;
     console.log(errorMsg);
-    mqttPublish(mqttParams.topic ? mqttParams.topic : 'watchmen',
-      { event: 'currentOutage', service: service.name, msg: JSON.stringify(outage.error) });
+    mqttPublish({ event: 'currentOutage', service: service.name, msg: JSON.stringify(outage.error) });
   },
 
   /**
@@ -57,8 +55,7 @@ var eventHandlers = {
   onFailedCheck: function (service, data) {
     var errorMsg = service.name + ' check failed!'.red + '. Error: ' + JSON.stringify(data.error).red;
     console.log(errorMsg);
-    mqttPublish(mqttParams.topic ? mqttParams.topic : 'watchmen',
-      { event: 'failedCheck', service: service.name, msg: JSON.stringify(outage.error) });
+    mqttPublish({ event: 'failedCheck', service: service.name, msg: JSON.stringify(outage.error) });
   },
 
   /**
@@ -71,8 +68,7 @@ var eventHandlers = {
   onLatencyWarning: function (service, data) {
     var msg = service.name + ' latency warning'.yellow + '. Took: ' + (data.elapsedTime + ' ms.').yellow;
     console.log(msg);
-    mqttPublish(mqttParams.topic ? mqttParams.topic : 'watchmen',
-      { event: 'latencyWarning', service: service.name, elapsedTime: data.elapsedTime });
+    mqttPublish({ event: 'latencyWarning', service: service.name, elapsedTime: data.elapsedTime });
   },
 
   /**
@@ -86,8 +82,7 @@ var eventHandlers = {
   onServiceBack: function (service, lastOutage) {
     var duration = moment.duration(+new Date() - lastOutage.timestamp, 'seconds');
     console.log(service.name.white + ' is back'.green + '. Down for '.gray + duration.humanize().white);
-    mqttPublish(mqttParams.topic ? mqttParams.topic : 'watchmen',
-      { event: 'serviceBack', service: service.name, duration: duration.humanize() });
+    mqttPublish({ event: 'serviceBack', service: service.name, duration: duration.humanize() });
   },
 
   /**
@@ -101,8 +96,7 @@ var eventHandlers = {
     var serviceOkMsg = service.name + ' responded ' + 'OK!'.green;
     var responseTimeMsg = data.elapsedTime + ' ms.';
     console.log(serviceOkMsg, responseTimeMsg.gray);
-    mqttPublish(mqttParams.topic ? mqttParams.topic : 'watchmen',
-      { event: 'serviceOk', service: service.name, elapsedTime: data.elapsedTime });
+    mqttPublish({ event: 'serviceOk', service: service.name, elapsedTime: data.elapsedTime });
   }
 };
 
