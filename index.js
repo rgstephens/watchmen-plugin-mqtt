@@ -112,7 +112,7 @@ var eventHandlers = {
     var serviceOkMsg = service.name + ' responded ' + 'OK!'.green;
     var responseTimeMsg = data.elapsedTime + ' ms.';
     console.log(serviceOkMsg, responseTimeMsg.gray);
-    mqttPublish(responseTimeMsg, { event: 'serviceOk', service: service.name, elapsedTime: data.elapsedTime });
+    mqttPublish(serviceOkMsg + ', ' + responseTimeMsg, { event: 'serviceOk', service: service.name, elapsedTime: data.elapsedTime });
   }
 };
 
