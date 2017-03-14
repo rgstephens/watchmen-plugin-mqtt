@@ -4,16 +4,25 @@ var moment = require('moment');
 var mqttParams = {
   //port: process.env.WATCHMEN_MQTT_BROKER_PORT,
   broker: process.env.WATCHMEN_MQTT_BROKER,
-  topic: process.env.WATCHMEN_MQTT_TOPIC
+  topic: process.env.WATCHMEN_MQTT_TOPIC,
+  username: process.env.WATCHMEN_MQTT_USERNAME,
+  password: process.env.WATCHMEN_MQTT_PASSWORD,
+  port: process.env.WATCHMEN_MQTT_PORT
 };
 
 function mqttPublish(payload) {
   var broker = mqttParams.broker ? mqttParams.broker : 'mqtt://test.mosquitto.org';
+  var port = mqttParams.port ? mqttParams.port : 18886;
   var topic = mqttParams.topic ? mqttParams.topic : 'watchmen';
-  console.log('mqttPublish, broker: ' + broker + ', topic: ' + topic + ', payload: ' + JSON.stringify(payload));
-  var client  = mqtt.connect(broker);
+  var options = {
+    username: mqttParams.username ? mqttParams.username : 'greg',
+    password: mqttParams.password ? mqttParams.password : '121'
+  };
+  console.log('mqttPublish, broker: ' + broker + ', typeof: ' + typeof(broker));
+  var client  = mqtt.connect([{ host: broker, port: port }], options);
   client.on('connect', function () {
-    client.publish(topic, payload);
+    console.log('Calling publish, topic: ' + topic  + ', payload: ' + JSON.stringify(payload));
+    client.publish(topic, payload.toString());
   });
 }
 
@@ -30,6 +39,7 @@ var eventHandlers = {
   onNewOutage: function (service, outage) {
     var errorMsg = service.name + ' down!'.red + '. Error: ' + JSON.stringify(outage.error).red;
     console.log(errorMsg);
+    mqttPublish(errorMsg);
     mqttPublish({ event: 'newOutage', service: service.name, msg: JSON.stringify(outage.error) });
   },
 
