@@ -83,7 +83,7 @@ var eventHandlers = {
   onLatencyWarning: function (service, data) {
     var msg = service.name + ' latency warning'.yellow + '. Took: ' + (data.elapsedTime + ' ms.').yellow;
     console.log(msg);
-    mqttPublish(errorMsg, { event: 'latencyWarning', service: service.name, elapsedTime: data.elapsedTime });
+    mqttPublish(msg, { event: 'latencyWarning', service: service.name, elapsedTime: data.elapsedTime });
   },
 
   /**
@@ -96,7 +96,8 @@ var eventHandlers = {
 
   onServiceBack: function (service, lastOutage) {
     var duration = moment.duration(+new Date() - lastOutage.timestamp, 'seconds');
-    console.log(service.name.white + ' is back'.green + '. Down for '.gray + duration.humanize().white);
+    var errorMsg = service.name.white + ' is back'.green + '. Down for '.gray + duration.humanize().white;
+    console.log(errorMsg);
     mqttPublish(errorMsg, { event: 'serviceBack', service: service.name, duration: duration.humanize() });
   },
 
@@ -111,7 +112,7 @@ var eventHandlers = {
     var serviceOkMsg = service.name + ' responded ' + 'OK!'.green;
     var responseTimeMsg = data.elapsedTime + ' ms.';
     console.log(serviceOkMsg, responseTimeMsg.gray);
-    mqttPublish(errorMsg, { event: 'serviceOk', service: service.name, elapsedTime: data.elapsedTime });
+    mqttPublish(responseTimeMsg, { event: 'serviceOk', service: service.name, elapsedTime: data.elapsedTime });
   }
 };
 
