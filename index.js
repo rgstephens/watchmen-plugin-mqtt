@@ -8,11 +8,14 @@ var mqttParams = {
 };
 
 function mqttPublish(payload) {
-  var client  = mqtt.connect(mqttParams.broker ? mqttParams.broker : 'mqtt://test.mosquitto.org');
+  var broker = mqttParams.broker ? mqttParams.broker : 'mqtt://test.mosquitto.org';
+  var topic = mqttParams.topic ? mqttParams.topic : 'watchmen';
+  console.log('mqttPublish, broker: ' + broker + ', topic: ' + topic + ', payload: ' + JSON.stringify(payload));
+  var client  = mqtt.connect(broker);
   client.on('connect', function () {
-    client.publish(mqttParams.topic ? mqttParams.topic : 'watchmen', payload);
+    client.publish(topic, payload);
   });
-};
+}
 
 var eventHandlers = {
 
