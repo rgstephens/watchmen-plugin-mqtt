@@ -13,6 +13,6 @@
   },
   "dependencies": {
     "mqtt": "^2.4.0"
-  }
+  },
   "license": "MIT"
 }
