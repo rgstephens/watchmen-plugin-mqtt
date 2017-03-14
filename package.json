@@ -1,0 +1,18 @@
+{
+  "name": "watchmen-plugin-mqtt",
+  "version": "0.0.1",
+  "description": "MQTT plugin for watchmen",
+  "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/rgstephens/watchmen-plugin-mqtt.git"
+  },
+  "author": {
+    "name": "Greg Stephens",
+    "url": "http://flnkr.com"
+  },
+  "dependencies": {
+    "mqtt": "^2.4.0"
+  }
+  "license": "MIT"
+}
