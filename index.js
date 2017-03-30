@@ -11,32 +11,34 @@ var mqttParams = {
 };
 
 function mqttPublish(message, payload) {
+  // payload contains: event (name), service (name) and data
   // Get IP address - http://stackoverflow.com/questions/3653065/get-local-ip-address-in-node-js
-  var broker = mqttParams.broker ? mqttParams.broker : 'http://stephens.click';
+  //console.log('mqttParams: ' + JSON.stringify(mqttParams));
+  var broker = 'mqtt://' + mqttParams.broker;
   var topic = mqttParams.topic ? mqttParams.topic : 'watchmen';
-  var topicMsg = mqttParams.topic ? mqttParams.topic : 'watchmen/msg';
+  var topicStatus = null;
   if (payload.service) {
     topic += '/' + payload.service;
-    topicStatus += '/' + payload.service + '/status';
-    topicMsg += '/' + payload.service;
+    topicStatus = topic + '/status';
     if (payload.event) {
       topic += '/' + payload.event;
-      topicMsg += '/' + payload.event;
     }
   }
-  var options = {
-    username: mqttParams.username ? mqttParams.username : 'greg',
-    password: mqttParams.password ? mqttParams.password : '121'
-  };
-  console.log('mqttPublish, broker: ' + broker + ', typeof: ' + typeof(broker));
-  //var client  = mqtt.connect([{ host: broker, port: port }], options);
-  //var client  = mqtt.connect(broker + ':' + port, options);
-  var client  = mqtt.connect(broker, options);
+  var options = {}
+  if (mqttParams.username) {
+    options.username = mqttParams.username
+  }
+  if (mqttParams.password) {
+    options.password = mqttParams.password
+  }
+  if (mqttParams.port) {
+    options.port = mqttParams.port
+  }
+  //console.log('mqttPublish, broker: ' + broker + ', options: ' + JSON.stringify(options));
+  var client = mqtt.connect(broker, options);
   client.on('connect', function () {
-    console.log('Calling publish, topic: ' + topic  + ', payload: ' + JSON.stringify(payload));
-    client.publish(topic, JSON.stringify(payload));
-    console.log('        publish, topic: ' + topicMsg  + ', payload: ' + message);
-    client.publish(topicMsg, message);
+    console.log('Calling publish, topic: ' + topic + ', payload: ' + payload.data);
+    client.publish(topic, payload.data);
     switch (payload.event) {
       case 'serviceBack':
       case 'serviceOk':
@@ -62,7 +64,7 @@ var eventHandlers = {
 
   onNewOutage: function (service, outage) {
     var errorMsg = service.name + ' down!'.red + '. Error: ' + JSON.stringify(outage.error).red;
-    mqttPublish(errorMsg, { event: 'newOutage', service: service.name, msg: JSON.stringify(outage.error) });
+    mqttPublish(errorMsg, {event: 'newOutage', service: service.name, data: outage.error});
   },
 
   /**
@@ -75,7 +77,10 @@ var eventHandlers = {
 
   onCurrentOutage: function (service, outage) {
     var errorMsg = service.name + ' is still down!'.red + '. Error: ' + JSON.stringify(outage.error).red;
-    mqttPublish(errorMsg, { event: 'currentOutage', service: service.name, msg: JSON.stringify(outage.error) });
+    mqttPublish(errorMsg, {event: 'currentOutageMsg', service: service.name, data: outage.error});
+    var outageLength = moment(outage.timestamp).from(moment());
+    console.log('outageLength: ' + outageLength + ', typeof: ' + typeof(outageLength));
+    mqttPublish(errorMsg, {event: 'currentOutageLength', service: service.name, data: outageLength});
   },
 
   /**
@@ -88,7 +93,7 @@ var eventHandlers = {
 
   onFailedCheck: function (service, data) {
     var errorMsg = service.name + ' check failed!'.red + '. Error: ' + JSON.stringify(data.error).red;
-    mqttPublish(errorMsg, { event: 'failedCheck', service: service.name, msg: JSON.stringify(outage.error) });
+    mqttPublish(errorMsg, {event: 'failedCheck', service: service.name, data: data.currentFailureCount.toString()});
   },
 
   /**
@@ -100,7 +105,7 @@ var eventHandlers = {
 
   onLatencyWarning: function (service, data) {
     var msg = service.name + ' latency warning'.yellow + '. Took: ' + (data.elapsedTime + ' ms.').yellow;
-    mqttPublish(msg, { event: 'latencyWarning', service: service.name, elapsedTime: data.elapsedTime });
+    mqttPublish(msg, {event: 'latencyWarning', service: service.name, data: data.elapsedTime.toString()});
   },
 
   /**
@@ -114,7 +119,7 @@ var eventHandlers = {
   onServiceBack: function (service, lastOutage) {
     var duration = moment.duration(+new Date() - lastOutage.timestamp, 'seconds');
     var errorMsg = service.name.white + ' is back'.green + '. Down for '.gray + duration.humanize().white;
-    mqttPublish(errorMsg, { event: 'serviceBack', service: service.name, duration: duration.humanize() });
+    mqttPublish(errorMsg, {event: 'serviceBack', service: service.name, data: duration.humanize()});
   },
 
   /**
@@ -127,11 +132,16 @@ var eventHandlers = {
   onServiceOk: function (service, data) {
     var serviceOkMsg = service.name + ' responded ' + 'OK!'.green;
     var responseTimeMsg = data.elapsedTime + ' ms.';
-    mqttPublish(serviceOkMsg + ', ' + responseTimeMsg, { event: 'serviceOk', service: service.name, elapsedTime: data.elapsedTime });
+    mqttPublish(serviceOkMsg + ', ' + responseTimeMsg, {
+      event: 'serviceOk',
+      service: service.name,
+      data: data.elapsedTime.toString()
+    });
   }
 };
 
 function MqttPlugin(watchmen) {
+  console.log('Starting MQTT Plugin...');
   watchmen.on('new-outage', eventHandlers.onNewOutage);
   watchmen.on('current-outage', eventHandlers.onCurrentOutage);
   watchmen.on('service-error', eventHandlers.onFailedCheck);

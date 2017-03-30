@@ -4,11 +4,13 @@ https://github.com/iloire/WatchMen
 
 ## Environment Variables
 
+```
 WATCHMEN_MQTT_BROKER
 WATCHMEN_MQTT_PORT
 WATCHMEN_MQTT_TOPIC
 WATCHMEN_MQTT_USERNAME
 WATCHMEN_MQTT_PASSWORD
+```
 
 ## Example MQTT Message
 
@@ -16,26 +18,38 @@ The topic format is `watchmen\<service-name>\<event-name>` where the event names
 
 Event|Description|Payload
 --|--|--
-status| Service up/down | Integer (0=Down, 1=Up)
-newOutage| Service just went down | {event: '', service: '<service-name>', msg: 'message'}
-currentOutage| Service still down | {event: '', service: '<service-name>', msg: 'message'}
-failedCheck| Check failed | {event: '', service: '<service-name>', msg: 'message'}
-latencyWarning| Latency threshold exceeded | {event: '', service: '<service-name>', msg: 'message'}
-serviceBack| Service back up | {event: '', service: '<service-name>', msg: 'message'}
-serviceOk| Service up | {event: '', service: '<service-name>', elapsedTime: <millesecond response>}
+status| Service up/down | 0=Down, 1=Up (integer)
+serviceOk| Service up | latency in ms (integer)
+newOutage| Service just went down | Failure message (string)
+currentOutageMsg| Service still down | Failure message (string)
+currentOutageLength| Service still down | Length of current outage (string)
+failedCheck| Check failed | failure count (integer)
+latencyWarning| Latency threshold exceeded | latency in ms (integer)
+serviceBack| Service back up | Duration of downtime (string)
 
-### JSON Message
 
-```
-topic: watchmen/GolfGenius/serviceOk
-payload: {"event":"serviceOk","service":"GolfGenius Page","elapsedTime":1052}
-```
-
-### Text Message
+### Example messages
 
 ```
-topic: watchmen/msg/GolfGenius/serviceOk
-payload: BGC responded OK!, 721 ms.
+watchmen/greghome/Bignion/serviceOk 4130
+watchmen/greghome/Bignion/status 1
+watchmen/greghome/xyzzy/failedCheck 44
+watchmen/greghome/xyzzy/currentOutageMsg Invalid status code. Found: 404. Expected: 200
+watchmen/greghome/xyzzy/currentOutageTimestamp 38 minutes ago
+```
+
+# Install this Plug-in
+
+Make sure you're first in the Watchmen directory. To install from NPM: 
+
+```
+npm install watchmen-plugin-mqtt --save
+```
+
+To install from latest Github:
+
+```
+npm install https://github.com/rgstephens/watchmen-plugin-mqtt.git --save
 ```
 
 # Raspberry Pi Setup Instructions
@@ -46,17 +60,6 @@ I'm running Watchmen on a Raspberry Pi with Raspbian and I'm starting it via Sys
 
 Console messages under Systemd with Raspbian are written to /var/log/daemon.log
 
-### More example messages
-
-```
-watchmen/BGC/serviceOk {"event":"serviceOk","service":"BGC","elapsedTime":369}
-watchmen/msg/BGC/serviceOk BGC responded OK!, 369 ms.
-watchmen/BHA/serviceOk {"event":"serviceOk","service":"BHA","elapsedTime":512}
-watchmen/msg/BHA/serviceOk BHA responded OK!, 512 ms.
-watchmen/GolfGeniusBGC/serviceOk {"event":"serviceOk","service":"GolfGeniusBGC","elapsedTime":626}
-watchmen/msg/GolfGeniusBGC/serviceOk GolfGeniusBGC responded OK!, 626 ms.
-```
-
 ## Raspberry Pi Complete Install Steps
 
 ```
@@ -65,12 +68,6 @@ git clone https://github.com/iloire/watchmen.git
 cd watchmen
 ```
 
-Customize the `docker-compose.env` file as needed
-
-```
-docker-compose build
-docker-compose up
-```
 
 ## Raspberry Pi Complete Install Steps
 
@@ -87,7 +84,7 @@ sudo apt-get install -y redis-server
 
 Change startup config file `/etc/systemd/system/multi-user.target.wants/redis-server.service`
 
-Change the line:
+Change the following line to match the Watchmen install directory location:
 
 ```
 ExecStart=/usr/bin/redis-server /etc/redis/redis.conf
@@ -162,23 +159,48 @@ node run-web-server.js
 
 #### Setup watchmen Env to auto-start with Foreman
 
-Setup any watchmen environment variables you want in the .env file:
+Setup any watchmen environment variables you want in the `.env` file:
 
 ```
 WATCHMEN_WEB_NO_AUTH=true
 WATCHMEN_REDIS_DB_PRODUCTION=1
 ```
 
+Install Foreman
+
 ```
-npm install -g foreman
+sudo npm install -g foreman
+```
+
+Run the Foreman start command to confirm that Foreman is correctly starting Watchmen and browse to port 3000 of the Raspberry Pi to insure that you see Watchmen.
+
+```
 nf start
 ```
-
-Setup Systemd startup files with foreman
+ 
+Create a ste of [Systemd](http://www.tecmint.com/create-new-service-units-in-systemd/) startup files with foreman
 
 ```
-nf export -t systemd
+sudo 
 ```
+
+The following files are created:
+
+```
+watchmen-monitor-1.service   # Starts run-monitor-server.js
+watchmen-monitor.target      # Requires watchmen.target, Wants watchmen-monitor-1.service
+watchmen.target              # Wanted-by multi-user.target, Wants watchmen-monitor.target watchmen-web.target
+watchmen-web-1.service       # Starts run-web-server.js
+watchmen-web.target          # Requires watchmen.target, Wants watchmen-web-1.service
+```
+
+Enable the service:
+
+```
+sudo systemctl enable watchmen.target
+```
+
+The [Systemd](https://access.redhat.com/documentation/en-US/Red_Hat_Enterprise_Linux/7/html/System_Administrators_Guide/sect-Managing_Services_with_systemd-Unit_Files.html) start-up files are stored under `/etc/systemd/system`.
 
 You need to tell Systemd about the new config files with this command:
 
@@ -189,11 +211,5 @@ sudo systemctl daemon-reload
 You can start and stop Watchmen with these commands:
 
 ```
-sudo systemctl start foreman.service
-```
-
-### Install this plugin from Git
-
-```
-npm install 
+sudo systemctl start watchmen.target
 ```
