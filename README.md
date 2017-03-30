@@ -4,12 +4,14 @@ https://github.com/iloire/WatchMen
 
 ## Environment Variables
 
+The supported environment variables are listed below. The **WATCHMEN_MQTT_BROKER** value must be set at a minimum. These are shown with example values:
+
 ```
-WATCHMEN_MQTT_BROKER
-WATCHMEN_MQTT_PORT
-WATCHMEN_MQTT_TOPIC
-WATCHMEN_MQTT_USERNAME
-WATCHMEN_MQTT_PASSWORD
+WATCHMEN_MQTT_BROKER=mqtt.mosquitto.org
+WATCHMEN_MQTT_PORT=1883
+WATCHMEN_MQTT_TOPIC=myRootTopic
+WATCHMEN_MQTT_USERNAME=myname
+WATCHMEN_MQTT_PASSWORD=mypassword
 ```
 
 ## Example MQTT Message
