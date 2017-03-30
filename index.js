@@ -1,5 +1,6 @@
 var mqtt = require('mqtt');
 var moment = require('moment');
+var os = require('os');
 
 var mqttParams = {
   //port: process.env.WATCHMEN_MQTT_BROKER_PORT,
@@ -49,6 +50,35 @@ function mqttPublish(message, payload) {
         client.publish(topicStatus, '0');
         break;
     }
+  });
+}
+
+function publishIPAddrs() {
+  console.log('publishIPAddrs');
+  var ifaces = os.networkInterfaces();
+
+  Object.keys(ifaces).forEach(function (ifname) {
+    var alias = 0;
+
+    ifaces[ifname].forEach(function (iface) {
+      if ('IPv4' !== iface.family || iface.internal !== false) {
+        // skip over internal (i.e. 127.0.0.1) and non-ipv4 addresses
+        return;
+      }
+
+      if (alias >= 1) {
+        // this single interface has multiple ipv4 addresses
+        var errorMsg = ifname + ':' + alias + ' ' + iface.address;
+        console.log(errorMsg);
+        mqttPublish(errorMsg, {event: ifname, service: 'ipAddr', data: iface.address});
+      } else {
+        // this interface has only one ipv4 adress
+        var errorMsg = ifname + ' ' + iface.address;
+        console.log(errorMsg);
+        mqttPublish(errorMsg, {event: ifname, service: 'ipAddr', data: iface.address});
+      }
+      ++alias;
+    });
   });
 }
 
@@ -142,6 +172,7 @@ var eventHandlers = {
 
 function MqttPlugin(watchmen) {
   console.log('Starting MQTT Plugin...');
+  publishIPAddrs();
   watchmen.on('new-outage', eventHandlers.onNewOutage);
   watchmen.on('current-outage', eventHandlers.onCurrentOutage);
   watchmen.on('service-error', eventHandlers.onFailedCheck);

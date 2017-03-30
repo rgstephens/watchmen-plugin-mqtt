@@ -26,6 +26,7 @@ currentOutageLength| Service still down | Length of current outage (string)
 failedCheck| Check failed | failure count (integer)
 latencyWarning| Latency threshold exceeded | latency in ms (integer)
 serviceBack| Service back up | Duration of downtime (string)
+ipAddr| Watchmen IP Address (sent at startup only) | Interface Name & IP Address (string)
 
 
 ### Example messages
